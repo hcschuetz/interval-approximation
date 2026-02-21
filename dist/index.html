@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interval Approximation</title>
+    <style>
+      h1, p, ul {
+        max-width: 50rem;
+      }
+      input[type=range] {
+        width: 20em;
+      }
+      input[type=checkbox] {
+        justify-self: start;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BWr1_0Zf.js"></script>
+  </head>
+  <body>
+    <h1>Approximation of Rational Intervals by Equal Temperaments</h1>
+    <em>(Inspired by <a
+      href="https://mastodon.social/@metaweta@mathstodon.xyz/116104252139421408"
+      target="_blank" rel="noopener noreferrer"
+      >this Mastodon post by Mike Stay</a>.
+      And in the meantime John Carlos Baez has also <a
+      href="https://mathstodon.xyz/@johncarlosbaez/116110277149045694"
+      target="_blank" rel="noopener noreferrer">announced another similar
+      diagram</a>.)</em>
+    <p>
+      For a given value <em>n</em>,
+      What is the difference between a frequency ratio
+      and its closest approximation with an <em>n</em>-tone equal temperament?
+    </p>
+    <ul>
+      <li>The numerator and denominator of the ratio can be selected below.</li>
+      <li>The horizontal axis gives the number <em>n</em> of steps per octave.</li>
+      <li>
+        The vertical axis gives the difference between the ratio and
+        the approximation, measured "on the logarithmic scale".
+      </li>
+      <li>
+        Depending on the first checkbox below,
+        signed or unsigned differences are displayed.
+      </li>
+      <li>
+        The other checkbox selects whether the difference is measured
+        in cents (1/1200 of an octave) or in multiples of a step.
+        (In the latter case the difference is always between -0.5 and +0.5.)
+      </li>
+      <li>
+        The dots in the graph sometimes line up to several "strands".
+        Actually the <em>n</em> values of a strand are from a residue class
+        modulo the number of strands.
+        <br>
+        The number of strands can be selected below.
+        <br>
+        We get "nice" (relatively flat) strands if the last number below
+        (the interval in octaves times the number of strands)
+        is close to an integer.
+      </li>
+    </ul>
+
+    <canvas id="out" width="1000" height="400" style="margin-bottom: 1em;"></canvas>
+
+    <div style="
+      display: grid;
+      grid-template-columns: repeat(3, max-content);
+      column-gap: 1em;
+      row-gap: 0.2em;
+    ">
+      <label for="numerator">numerator</label>
+      <input type="range" id="numerator" min="1" max="20">
+      <output id="numerator-out"></output>
+
+      <label for="denominator">denominator</label>
+      <input type="range" id="denominator" min="1" max="20">
+      <output id="denominator-out"></output>
+
+      <label for="strands">#strands</label>
+      <input type="range" id="strands" min="0" max="40">
+      <output id="strands-out"></output>
+
+      <label for="abs">diff: show absolute value</label>
+      <input type="checkbox" id="abs">
+      <span></span>
+
+      <label for="in-steps">diff: measure in steps</label>
+      <input type="checkbox" id="in-steps">
+      <span></span>
+
+      <span>ratio = numerator / denominator</span>
+      <output id="ratio"></output>
+      <span></span>
+
+      <span>interval in octaves = log<sub>2</sub>(ratio)</span>
+      <output id="interval-in-octaves"></output>
+      <span></span>
+
+      <span>interval in octaves * #strands</span>
+      <output id="interval-times-strands"></output>
+      <span></span>
+    </div>
+  </body>
+</html>
