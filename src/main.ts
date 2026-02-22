@@ -91,6 +91,7 @@ const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
 const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
 strandsIn.addEventListener("input", () =>
   strandsOut.value = strandsIn.value === "0" ? "-" : strandsIn.value);
+strandsIn.value = "4";
 strandsIn.dispatchEvent(new InputEvent("input"));
 
 const absIn = document.querySelector<HTMLInputElement>("#abs")!;
