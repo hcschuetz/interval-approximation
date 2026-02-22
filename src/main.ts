@@ -1,8 +1,5 @@
 const N = 100;
 const dotRadius = 3;
-// The y axis will go from -centsRange/2 to +centsRange/2:
-const centsRange = 60;
-const centsTick = 10; // step width for labelling the y axis
 
 
 const TAU = 2 * Math.PI;
@@ -39,25 +36,56 @@ function dot(x: number, y: number) {
 
 const numIn = document.querySelector<HTMLInputElement>("#numerator")!;
 const numOut = document.querySelector<HTMLOutputElement>("#numerator-out")!;
-numIn?.addEventListener("input", () => numOut.value = numIn.value);
+numIn.addEventListener("input", () => numOut.value = numIn.value);
 numIn.value = numOut.value = "5";
 
 const denomIn = document.querySelector<HTMLInputElement>("#denominator")!;
 const denomOut = document.querySelector<HTMLOutputElement>("#denominator-out")!;
-denomIn?.addEventListener("input", () => denomOut.value = denomIn.value);
+denomIn.addEventListener("input", () => denomOut.value = denomIn.value);
 denomIn.value = denomOut.value = "3";
 
 const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
 const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
-strandsIn?.addEventListener("input", () =>
+strandsIn.addEventListener("input", () =>
   strandsOut.value = strandsIn.value === "0" ? "-" : strandsIn.value);
-strandsIn.value = "0";
-strandsOut.value = "-";
+strandsIn.dispatchEvent(new InputEvent("input"));
 
 const absIn = document.querySelector<HTMLInputElement>("#abs")!;
+const absOut = document.querySelector<HTMLInputElement>("#abs-out")!;
+absIn.addEventListener("change", () => {
+  absOut.value = absIn.checked ? "unsigned" : "signed";
+})
 absIn.checked = false;
+absIn.dispatchEvent(new CustomEvent("change"));
+
 const inStepsIn = document.querySelector<HTMLInputElement>("#in-steps")!;
+const inStepsOut = document.querySelector<HTMLInputElement>("#in-steps-out")!;
+inStepsIn.addEventListener("change", () => {
+  inStepsOut.value = inStepsIn.checked ? "measure in steps" : "measure in cents";
+});
 inStepsIn.checked = true;
+inStepsIn.dispatchEvent(new CustomEvent("change"));
+
+// The y axis will go from -maxCents to +maxCents:
+let maxCents = 60;
+const maxCentsLabel = document.querySelector<HTMLLabelElement>('label[for="max-cents"]')!;
+const maxCentsIn = document.querySelector<HTMLInputElement>("#max-cents")!;
+const maxCentsOut = document.querySelector<HTMLOutputElement>("#max-cents-out")!;
+maxCentsIn.addEventListener("input", () => {
+  const {value} = maxCentsIn;
+  maxCentsOut.value = `-${value}ct – +${value}ct`;
+  maxCents = Number.parseInt(value);
+});
+maxCentsIn.value = maxCents.toString();
+maxCentsIn.dispatchEvent(new InputEvent("input"));
+
+inStepsIn.addEventListener("change", () => {
+  const {checked} = inStepsIn;
+  maxCentsIn.disabled = checked;
+  maxCentsLabel.style.opacity = maxCentsOut.style.opacity = checked ? "0.5" : "1";
+});
+inStepsIn.dispatchEvent(new CustomEvent("change"));
+
 
 const ratioOut = document.querySelector<HTMLOutputElement>("#ratio")!;
 const intervalInOctavesOut = document.querySelector<HTMLOutputElement>("#interval-in-octaves")!;
@@ -68,10 +96,7 @@ function coords() {
   ctx.fillStyle = "#000";
   ctx.lineWidth = .5;
 
-  line(fromX, fromY, toX, fromY);
   line(fromX, 0    , toX, 0    );
-  line(fromX, toY  , toX, toY  );
-
   line(fromX, fromY, fromX, toY);
 
   // TODO eliminate "magic" numbers
@@ -82,12 +107,23 @@ function coords() {
     ctx.fillText(x.toString(), posX(x)-5, posY(-0.05));
   }
   if (inStepsIn.checked) {
+    line(fromX, fromY, toX, fromY);
+    line(fromX, toY  , toX, toY  );
     for (const y of [fromY, 0, toY]) {
-      ctx.fillText(y.toString(), posX(0), posY(y) + 5);
+      ctx.fillText(y.toString(), posX(0), posY(y) + 3);
     }
   } else {
-    for (let y = fromY * centsRange; y <= toY * centsRange; y += centsTick) {
-      ctx.fillText(y.toFixed() + "ct", posX(0), posY(y/centsRange) + 5);
+    ctx.fillText("0ct", posX(0), posY(0) + 3);
+    const centsTick =
+      maxCents < 20 ? 5 :
+      maxCents < 50 ? 10 :
+      maxCents < 100 ? 20 :
+      maxCents < 200 ? 50 :
+      100;
+    const scaling = 0.5 / maxCents;
+    for (let y = centsTick; y <= maxCents; y += centsTick) {
+      ctx.fillText(`-${y.toFixed()}ct`, posX(0), posY(-y*scaling) + 3);
+      ctx.fillText(`+${y.toFixed()}ct`, posX(0), posY(+y*scaling) + 3);
     }
   }
 }
@@ -115,7 +151,7 @@ function draw() {
       const rounded = Math.round(steps);
       let diff = steps - rounded;
       if (abs) diff = Math.abs(diff);
-      if (!inSteps) diff = diff * 1200 / (n * centsRange);
+      if (!inSteps) diff = diff * 600 / (n * maxCents);
       dot(n, diff);
       if (!strands) continue;
       if (nOld > 0) {
@@ -126,7 +162,7 @@ function draw() {
   }
 }
 
-for (const el of [numIn, denomIn, strandsIn, absIn, inStepsIn]) {
+for (const el of [numIn, denomIn, strandsIn, absIn, inStepsIn, maxCentsIn]) {
   el.addEventListener("input", () => {
     ctx.clearRect(0, 0, width, height);
     coords();
