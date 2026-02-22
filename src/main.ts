@@ -194,7 +194,7 @@ function draw() {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
-      const diff = steps - rounded;
+      const diff = rounded - steps;
       const diff2 = abs ? Math.abs(diff) : diff;
       const diff3 = inSteps ? diff2 : diff2 * 600 / (n * maxCents);
       dot(n, diff3,
