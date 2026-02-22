@@ -116,7 +116,7 @@ const maxCentsIn = document.querySelector<HTMLInputElement>("#max-cents")!;
 const maxCentsOut = document.querySelector<HTMLOutputElement>("#max-cents-out")!;
 maxCentsIn.addEventListener("input", () => {
   const {value} = maxCentsIn;
-  maxCentsOut.value = `-${value}ct – +${value}ct`;
+  maxCentsOut.value = `-${value}ct ... +${value}ct`;
   maxCents = Number.parseInt(value);
 });
 maxCentsIn.value = maxCents.toString();
