@@ -27,11 +27,54 @@ function line(x1: number, y1: number, x2: number, y2: number) {
   ctx.stroke();
 }
 
-function dot(x: number, y: number) {
+type Dot = {
+  X: number, Y: number,
+  onin: (ev: PointerEvent) => void,
+  onout: () => void;
+};
+
+const dots: Dot[] = [];
+
+function dot(x: number, y: number, onin: (ev: PointerEvent) => void, onout: () => void) {
   ctx.beginPath();
-  ctx.arc(posX(x), posY(y), dotRadius, 0, TAU);
+  const X = posX(x);
+  const Y = posY(y);
+  dots.push({X, Y, onin, onout});
+  ctx.arc(X, Y, dotRadius, 0, TAU);
   ctx.fill();
 }
+
+let latestDot: Dot | undefined = undefined;
+
+function handlePointerEvent(ev: PointerEvent) {
+  const {left, top} = canvas.getBoundingClientRect();
+  const {clientX, clientY} = ev;
+  let X = clientX - left;
+  let Y = clientY - top;
+  let closestDot = dots[0];
+  let closestDotDistSquare = Number.MAX_VALUE;
+  for (let dot of dots) {
+    const distSqare = (X-dot.X)**2 + (Y-dot.Y)**2;
+    if (distSqare < closestDotDistSquare) {
+      closestDot = dot;
+      closestDotDistSquare = distSqare;
+    }
+  }
+  if (closestDotDistSquare < 5**2) {
+    if (closestDot !== latestDot) {
+      latestDot?.onout();
+      latestDot = closestDot;
+      closestDot.onin(ev);
+    }
+  } else {
+    latestDot?.onout();
+    latestDot = undefined;
+  }
+}
+for (const eventType of ["pointerenter", "pointermove", "pointerdown"] as const) {
+  canvas.addEventListener(eventType, handlePointerEvent);
+}
+// canvas.addEventListener("pointerleave", () => latestDot?.onout());
 
 
 const numIn = document.querySelector<HTMLInputElement>("#numerator")!;
@@ -128,6 +171,8 @@ function coords() {
   }
 }
 
+const dotInfo = document.querySelector<HTMLOutputElement>("#dot-info")!;
+
 function draw() {
   const ratio = Number.parseInt(numIn.value) / Number.parseInt(denomIn.value);
   const inOctaves = Math.log2(ratio);
@@ -149,15 +194,32 @@ function draw() {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
-      let diff = steps - rounded;
-      if (abs) diff = Math.abs(diff);
-      if (!inSteps) diff = diff * 600 / (n * maxCents);
-      dot(n, diff);
+      const diff = steps - rounded;
+      const diff2 = abs ? Math.abs(diff) : diff;
+      const diff3 = inSteps ? diff2 : diff2 * 600 / (n * maxCents);
+      dot(n, diff3,
+         ev => {
+          dotInfo.style.display = "block";
+          dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
+          dotInfo.style.top  = Math.min(ev.clientY, window.innerHeight - 100) + "px";
+          dotInfo.value =
+`log₂(${numIn.value}/${denomIn.value}) = ${
+  (steps/n).toFixed(5)} = ${
+  rounded}/${n} ${diff < 0 ? "-" : "+"} ${(Math.abs(diff)/n).toFixed(5)}
+where
+${(diff / n).toFixed(5)} octaves = ${
+  (diff / n * 1200).toFixed(2)} ct = ${
+  diff.toFixed(5)} steps`;
+        },
+        () => {
+          dotInfo.style.display = "none";
+        },
+      );
       if (!strands) continue;
       if (nOld > 0) {
-        line(nOld, diffOld, n, diff);
+        line(nOld, diffOld, n, diff3);
       }
-      [nOld, diffOld] = [n, diff];
+      [nOld, diffOld] = [n, diff3];
     }
   }
 }
@@ -166,9 +228,11 @@ for (const el of [numIn, denomIn, strandsIn, absIn, inStepsIn, maxCentsIn]) {
   el.addEventListener("input", () => {
     ctx.clearRect(0, 0, width, height);
     coords();
+    dots.length = 0;
     draw();
   });
 }
 
 coords();
+dots.length = 0;
 draw();
