@@ -79,61 +79,27 @@ canvas.addEventListener("pointerleave", () => latestDot?.onout());
 
 const numIn = document.querySelector<HTMLInputElement>("#numerator")!;
 const numOut = document.querySelector<HTMLOutputElement>("#numerator-out")!;
-numIn.addEventListener("input", () => numOut.value = numIn.value);
-numIn.value = numOut.value = "5";
 
 const denomIn = document.querySelector<HTMLInputElement>("#denominator")!;
 const denomOut = document.querySelector<HTMLOutputElement>("#denominator-out")!;
-denomIn.addEventListener("input", () => denomOut.value = denomIn.value);
-denomIn.value = denomOut.value = "3";
-
-const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
-const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
-strandsIn.addEventListener("input", () =>
-  strandsOut.value = strandsIn.value === "0" ? "-" : strandsIn.value);
-strandsIn.value = "4";
-strandsIn.dispatchEvent(new InputEvent("input"));
 
 const absIn = document.querySelector<HTMLInputElement>("#abs")!;
 const absOut = document.querySelector<HTMLInputElement>("#abs-out")!;
-absIn.addEventListener("change", () => {
-  absOut.value = absIn.checked ? "unsigned" : "signed";
-})
-absIn.checked = false;
-absIn.dispatchEvent(new CustomEvent("change"));
 
 const inStepsIn = document.querySelector<HTMLInputElement>("#in-steps")!;
 const inStepsOut = document.querySelector<HTMLInputElement>("#in-steps-out")!;
-inStepsIn.addEventListener("change", () => {
-  inStepsOut.value = inStepsIn.checked ? "measure in steps" : "measure in cents";
-});
-inStepsIn.checked = true;
-inStepsIn.dispatchEvent(new CustomEvent("change"));
 
-// The y axis will go from -maxCents to +maxCents:
-let maxCents = 60;
 const maxCentsLabel = document.querySelector<HTMLLabelElement>('label[for="max-cents"]')!;
 const maxCentsIn = document.querySelector<HTMLInputElement>("#max-cents")!;
 const maxCentsOut = document.querySelector<HTMLOutputElement>("#max-cents-out")!;
-maxCentsIn.addEventListener("input", () => {
-  const {value} = maxCentsIn;
-  maxCentsOut.value = `-${value}ct ... +${value}ct`;
-  maxCents = Number.parseInt(value);
-});
-maxCentsIn.value = maxCents.toString();
-maxCentsIn.dispatchEvent(new InputEvent("input"));
 
-inStepsIn.addEventListener("change", () => {
-  const {checked} = inStepsIn;
-  maxCentsIn.disabled = checked;
-  maxCentsLabel.style.opacity = maxCentsOut.style.opacity = checked ? "0.5" : "1";
-});
-inStepsIn.dispatchEvent(new CustomEvent("change"));
-
+const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
+const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
 
 const ratioOut = document.querySelector<HTMLOutputElement>("#ratio")!;
 const intervalInOctavesOut = document.querySelector<HTMLOutputElement>("#interval-in-octaves")!;
 const intervalTimesStrandsOut = document.querySelector<HTMLOutputElement>("#interval-times-strands")!;
+
 
 function coords() {
   ctx.strokeStyle = "#888";
@@ -158,13 +124,16 @@ function coords() {
     }
   } else {
     ctx.fillText("0ct", posX(0), posY(0) + 3);
+    const maxCents = Number.parseInt(maxCentsIn.value);
     const centsTick =
       maxCents < 20 ? 5 :
       maxCents < 50 ? 10 :
       maxCents < 100 ? 20 :
       maxCents < 200 ? 50 :
       100;
-    const scaling = 0.5 / maxCents;
+    // The `toY` here is because posY(...) is "calibrated" to this value.
+    // It might be cleaner to pass the range to posY(...). 
+    const scaling = toY / maxCents;
     for (let y = centsTick; y <= maxCents; y += centsTick) {
       ctx.fillText(`-${y.toFixed()}ct`, posX(0), posY(-y*scaling) + 3);
       ctx.fillText(`+${y.toFixed()}ct`, posX(0), posY(+y*scaling) + 3);
@@ -181,10 +150,13 @@ function draw() {
   const m = Math.max(1, strands);
   const abs = absIn.checked;
   const inSteps = inStepsIn.checked;
+  const maxCents = Number.parseInt(maxCentsIn.value);
 
   ratioOut.value = ratio.toString();
   intervalInOctavesOut.value = inOctaves.toString();
   intervalTimesStrandsOut.value = strands ? (inOctaves * m).toString() : "-";
+
+  dots.length = 0;
 
   ctx.lineWidth = 1;
   for (let rest = 0; rest < m; rest ++) {
@@ -223,15 +195,50 @@ ${(diff / n).toFixed(5)} octaves = ${
   }
 }
 
-for (const el of [numIn, denomIn, strandsIn, absIn, inStepsIn, maxCentsIn]) {
-  el.addEventListener("input", () => {
-    ctx.clearRect(0, 0, width, height);
-    coords();
-    dots.length = 0;
-    draw();
-  });
+for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, strandsIn]) {
+  elem.addEventListener("input", () =>
+    location.hash = (new URLSearchParams({
+      num: numIn.value,
+      denom: denomIn.value,
+      unsigned: absIn.checked ? "true" : "false",
+      inSteps: inStepsIn.checked ? "true" : "false",
+      maxCents: maxCentsIn.value,
+      strands: strandsIn.value,
+    })).toString()
+  );
 }
 
-coords();
-dots.length = 0;
-draw();
+function handleHash() {
+  const params = new URLSearchParams(location.hash.substring(1));
+
+  numOut.value = numIn.value = params.get("num") ?? "5";
+  denomOut.value = denomIn.value = params.get("denom") ?? "3";
+
+  absIn.checked = params.get("unsigned") === "true";
+  absOut.value = absIn.checked ? "unsigned" : "signed";
+
+  {
+    const checked = inStepsIn.checked = params.get("inSteps") === "true";
+    inStepsOut.value = checked ? "measure in steps" : "measure in cents";
+    maxCentsIn.disabled = checked;
+    maxCentsLabel.style.opacity = maxCentsOut.style.opacity = checked ? "0.5" : "1";
+  }
+
+  {
+    const value = maxCentsIn.value = params.get("maxCents") ?? "60";
+    maxCentsOut.value = `-${value}ct ... +${value}ct`;
+  }
+
+  {
+    const value = params.get("strands") ?? "0";
+    strandsIn.value = value;
+    strandsOut.value = value === "0" ? "-" : value;
+  }
+
+  ctx.clearRect(0, 0, width, height);
+  coords();
+  draw();
+}
+
+window.addEventListener("hashchange", handleHash);
+handleHash();
