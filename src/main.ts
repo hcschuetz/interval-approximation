@@ -74,7 +74,7 @@ function handlePointerEvent(ev: PointerEvent) {
 for (const eventType of ["pointerenter", "pointermove", "pointerdown"] as const) {
   canvas.addEventListener(eventType, handlePointerEvent);
 }
-// canvas.addEventListener("pointerleave", () => latestDot?.onout());
+canvas.addEventListener("pointerleave", () => latestDot?.onout());
 
 
 const numIn = document.querySelector<HTMLInputElement>("#numerator")!;
@@ -202,7 +202,7 @@ function draw() {
          ev => {
           dotInfo.style.display = "block";
           dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
-          dotInfo.style.top  = Math.min(ev.clientY, window.innerHeight - 100) + "px";
+          dotInfo.style.top  = (ev.clientY + 10) + "px";
           dotInfo.value =
 `${rounded}/${n} = ${(rounded/n).toFixed(5)} = log₂(${numIn.value}/${denomIn.value}) ${diff < 0 ? "-" : "+"} ${(Math.abs(diff)/n).toFixed(5)}
 where
