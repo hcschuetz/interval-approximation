@@ -16,7 +16,7 @@
         justify-self: start;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-BWr1_0Zf.js"></script>
+    <script type="module" crossorigin src="./assets/index-DvFaSReG.js"></script>
   </head>
   <body>
     <h1>Approximation of Rational Intervals by Equal Temperaments</h1>
@@ -87,13 +87,17 @@
       <input type="range" id="strands" min="0" max="40">
       <output id="strands-out"></output>
 
-      <label for="abs">diff: show absolute value</label>
+      <label for="abs">diff: unsigned?</label>
       <input type="checkbox" id="abs">
-      <span></span>
+      <output id="abs-out"></output>
 
-      <label for="in-steps">diff: measure in steps</label>
+      <label for="in-steps">diff: measure in steps?</label>
       <input type="checkbox" id="in-steps">
-      <span></span>
+      <output id="in-steps-out"></output>
+
+      <label for="max-cents">displayed cent range</label>
+      <input type="range" id="max-cents" min="10" max="300" step="10">
+      <output id="max-cents-out"></output>
 
       <span>ratio = numerator / denominator</span>
       <output id="ratio"></output>
