@@ -1,6 +1,8 @@
 const N = 100;
 const dotRadius = 3;
-const inStepsScale = 20; // should be a divisor of 600
+// The y axis will go from -centsRange/2 to +centsRange/2:
+const centsRange = 60;
+const centsTick = 10; // step width for labelling the y axis
 
 
 const TAU = 2 * Math.PI;
@@ -84,8 +86,8 @@ function coords() {
       ctx.fillText(y.toString(), posX(0), posY(y) + 5);
     }
   } else {
-    for (let y = -600/inStepsScale; y <= 600/inStepsScale; y += 200/inStepsScale) {
-      ctx.fillText(y.toString() + "ct", posX(0), posY(y * inStepsScale / 1200) + 5);
+    for (let y = fromY * centsRange; y <= toY * centsRange; y += centsTick) {
+      ctx.fillText(y.toFixed() + "ct", posX(0), posY(y/centsRange) + 5);
     }
   }
 }
@@ -113,8 +115,7 @@ function draw() {
       const rounded = Math.round(steps);
       let diff = steps - rounded;
       if (abs) diff = Math.abs(diff);
-      if (!inSteps) diff = diff / n * inStepsScale;
-      // console.log({n, steps, rounded, diff});
+      if (!inSteps) diff = diff * 1200 / (n * centsRange);
       dot(n, diff);
       if (!strands) continue;
       if (nOld > 0) {
