@@ -1,5 +1,5 @@
 const N = 100;
-const dotRadius = 3;
+const dotRadius = 4;
 
 
 const TAU = 2 * Math.PI;
@@ -45,6 +45,12 @@ function dot(
   const Y = posY(y, maxY);
   dots.push({X, Y, onin, onout});
   ctx.arc(X, Y, dotRadius, 0, TAU);
+  ctx.fill();
+}
+
+function highlightDot(x: number, y: number, maxY: number) {
+  ctx.beginPath();
+  ctx.arc(posX(x), posY(y, maxY), dotRadius*.6, 0, TAU);
   ctx.fill();
 }
 
@@ -99,6 +105,9 @@ const maxCentsOut = document.querySelector<HTMLOutputElement>("#max-cents-out")!
 
 const limitsIn = document.querySelector<HTMLInputElement>("#limits")!;
 // const limitsOut = document.querySelector<HTMLOutputElement>("#limits-out")!;
+
+const optimaIn = document.querySelector<HTMLInputElement>("#optima")!;
+// const optimaOut = document.querySelector<HTMLOutputElement>("#optima-out")!;
 
 const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
 const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
@@ -176,6 +185,7 @@ function draw() {
   const abs = absIn.checked;
   const inSteps = inStepsIn.checked;
   const maxCents = Number.parseInt(maxCentsIn.value);
+  const maxY = inSteps ? toY : maxCents;
 
   ratioOut.value = ratio.toString();
   intervalInOctavesOut.value = inOctaves.toString();
@@ -195,7 +205,6 @@ function draw() {
       const diff = rounded - steps;
       const diff2 = abs ? Math.abs(diff) : diff;
       const diff3 = inSteps ? diff2 : diff2 / n * 1200;
-      const maxY = inSteps ? toY : maxCents;
       dot(n, diff3, maxY,
          ev => {
           dotInfo.style.display = "block";
@@ -221,9 +230,28 @@ ${(diff / n).toFixed(5)} octaves = ${
       [nOld, diffOld] = [n, diff3];
     }
   }
+  if (optimaIn.checked) {
+    let best = Number.MAX_VALUE;
+    ctx.fillStyle = "#fff";
+    for (let n = 1; n <= N; n++) {
+      const steps = inOctaves * n;
+      const rounded = Math.round(steps);
+      const diff = rounded - steps;
+      const dist = Math.abs((rounded - steps) / n);
+      if (dist < best) {
+        const diff2 = abs ? Math.abs(diff) : diff;
+        const diff3 = inSteps ? diff2 : diff2 / n * 1200;
+        highlightDot(n, diff3, maxY);
+        // Reduce the new limit slightly so that an essentially equal value
+        // (up to rounding errors) will not be taken as a new optimum.
+        // Is the "epsilon" reasonable?
+        best = dist - 1e-12;
+      }
+    }
+  }
 }
 
-for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, strandsIn]) {
+for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, optimaIn, strandsIn]) {
   elem.addEventListener("input", () =>
     location.hash = (new URLSearchParams({
       num: numIn.value,
@@ -232,6 +260,7 @@ for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, stra
       inSteps: inStepsIn.checked ? "true" : "false",
       maxCents: maxCentsIn.value,
       limits: limitsIn.checked ? "true" : "false",
+      optima: optimaIn.checked ? "true" : "false",
       strands: strandsIn.value,
     })).toString()
   );
@@ -260,6 +289,9 @@ function handleHash() {
 
   limitsIn.checked = params.get("limits") === "true";
   // limitsOut.value = ... // anything sensible to write here?
+
+  optimaIn.checked = params.get("optima") === "true";
+  // optimaOut.value = ... // anything sensible to write here?
 
   {
     const value = params.get("strands") ?? "0";
