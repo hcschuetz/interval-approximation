@@ -1,4 +1,3 @@
-const N = 100;
 const dotRadius = 4;
 const lineStep = 0.5;
 
@@ -9,12 +8,14 @@ const canvas = document.querySelector<HTMLCanvasElement>('#out')!;
 const ctx = canvas.getContext("2d")!;
 
 const {width, height} = canvas;
-const paddingX = 15, fromX = 0, toX = N;
+const paddingX = 15, fromX = 0;
 const paddingY = 5, fromY = -.5, toY = .5;
 
-
-const scaleX = (width - 2 * paddingX) / (toX - fromX);
-const offsetX = paddingX - scaleX * fromX;
+let scaleX = 0, offsetX = 0;
+function setNMax(toX: number) {
+  scaleX = (width - 2 * paddingX) / (toX - fromX);
+  offsetX = paddingX - scaleX * fromX;
+}
 const posX = (x: number) => scaleX * x + offsetX;
 
 const scaleY = (height - 2 * paddingY);
@@ -94,6 +95,9 @@ const numOut = document.querySelector<HTMLOutputElement>("#numerator-out")!;
 const denomIn = document.querySelector<HTMLInputElement>("#denominator")!;
 const denomOut = document.querySelector<HTMLOutputElement>("#denominator-out")!;
 
+const nMaxIn = document.querySelector<HTMLInputElement>("#n-max")!;
+const nMaxOut = document.querySelector<HTMLOutputElement>("#n-max-out")!;
+
 const absIn = document.querySelector<HTMLInputElement>("#abs")!;
 const absOut = document.querySelector<HTMLInputElement>("#abs-out")!;
 
@@ -124,6 +128,8 @@ function coords() {
   ctx.strokeStyle = "#888";
   ctx.fillStyle = "#000";
   ctx.lineWidth = .5;
+  const toX = Number.parseInt(nMaxIn.value);
+
 
   line(fromX, 0    , toX, 0    , toY);
   line(fromX, fromY, fromX, toY, toY);
@@ -180,10 +186,10 @@ const dotInfo = document.querySelector<HTMLOutputElement>("#dot-info")!;
 
 function draw() {
   const ratio = Number.parseInt(numIn.value) / Number.parseInt(denomIn.value);
+  const nMax = Number.parseInt(nMaxIn.value);
   const inOctaves = Math.log2(ratio);
   const strands = Number.parseInt(strandsIn.value);
   const m = Math.max(1, strands);
-  const abs = absIn.checked;
   const inSteps = inStepsIn.checked;
   const maxCents = Number.parseInt(maxCentsIn.value);
   const maxY = inSteps ? toY : maxCents;
@@ -199,7 +205,7 @@ function draw() {
     ctx.strokeStyle = ctx.fillStyle =
       strands ? `hsl(${rest/m}turn 100% 50%)` : "#000";
     let nOld = 0; let diffAOld = 0;
-    for (let n = rest; n <= N; n += m) {
+    for (let n = rest; n <= nMax; n += m) {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
@@ -238,7 +244,7 @@ ${(diff / n).toFixed(5)} octaves = ${
   if (optimaIn.checked) {
     let best = Number.MAX_VALUE;
     ctx.fillStyle = "#fff";
-    for (let n = 1; n <= N; n++) {
+    for (let n = 1; n <= nMax; n++) {
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
       const diff = rounded - steps;
@@ -260,11 +266,15 @@ const interpolate = (x1: number, y1: number, x2: number, y2: number, x: number) 
 const absDiff = (y: number) => absIn.checked ? Math.abs(y) : y;
 const scaleDiff = (y: number, n: number) => inStepsIn.checked ? y : y / n * 1200;
 
-for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, optimaIn, strandsIn]) {
+for (const elem of [
+  numIn, denomIn, nMaxIn, absIn, inStepsIn, maxCentsIn,
+  limitsIn, optimaIn, strandsIn
+]) {
   elem.addEventListener("input", () =>
     location.hash = (new URLSearchParams({
       num: numIn.value,
       denom: denomIn.value,
+      nMax: nMaxIn.value,
       unsigned: absIn.checked ? "true" : "false",
       inSteps: inStepsIn.checked ? "true" : "false",
       maxCents: maxCentsIn.value,
@@ -280,6 +290,8 @@ function handleHash() {
 
   numOut.value = numIn.value = params.get("num") ?? "5";
   denomOut.value = denomIn.value = params.get("denom") ?? "3";
+  nMaxOut.value = nMaxIn.value = params.get("nMax") ?? "60";
+  setNMax(Number.parseInt(nMaxIn.value));
 
   absIn.checked = params.get("unsigned") === "true";
   absOut.value = absIn.checked ? "unsigned" : "signed";
