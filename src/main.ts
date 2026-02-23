@@ -107,6 +107,8 @@ const ratioOut = document.querySelector<HTMLOutputElement>("#ratio")!;
 const intervalInOctavesOut = document.querySelector<HTMLOutputElement>("#interval-in-octaves")!;
 const intervalTimesStrandsOut = document.querySelector<HTMLOutputElement>("#interval-times-strands")!;
 
+const duplicateButton = document.querySelector<HTMLButtonElement>("#duplicate-btn")!;
+duplicateButton.addEventListener("click", () => window.open(location.href));
 
 function coords() {
   ctx.strokeStyle = "#888";
