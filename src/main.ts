@@ -180,7 +180,9 @@ function draw() {
           dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
           dotInfo.style.top  = (ev.clientY + 10) + "px";
           dotInfo.value =
-`${rounded}/${n} = ${(rounded/n).toFixed(5)} = log₂(${numIn.value}/${denomIn.value}) ${diff < 0 ? "-" : "+"} ${(Math.abs(diff)/n).toFixed(5)}
+`${rounded}/${n
+} = ${(rounded/n).toFixed(5)
+} = log₂(${numIn.value}/${denomIn.value}) ${diff < 0 ? "-" : "+"} ${(Math.abs(diff)/n).toFixed(5)}
 where
 ${(diff / n).toFixed(5)} octaves = ${
   (diff / n * 1200).toFixed(2)} ct = ${
