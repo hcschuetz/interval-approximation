@@ -219,9 +219,7 @@ ${(diff / n).toFixed(5)} octaves = ${
   (diff / n * 1200).toFixed(2)} ct = ${
   diff.toFixed(5)} steps`;
         },
-        () => {
-          dotInfo.style.display = "none";
-        },
+        () => dotInfo.style.display = "none",
       );
       if (!strands) continue;
       if (nOld > 0) {
