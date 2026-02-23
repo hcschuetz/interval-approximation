@@ -16,14 +16,14 @@ const scaleX = (width - 2 * paddingX) / (toX - fromX);
 const offsetX = paddingX - scaleX * fromX;
 const posX = (x: number) => scaleX * x + offsetX;
 
-const scaleY = (height - 2 * paddingY) / (toY - fromY);
+const scaleY = (height - 2 * paddingY);
 const offsetY = paddingY - scaleY * fromY;
-const posY = (y: number) => scaleY * -y + offsetY;
+const posY = (y: number, max: number) => scaleY/(2*max) * -y + offsetY;
 
-function line(x1: number, y1: number, x2: number, y2: number) {
+function line(x1: number, y1: number, x2: number, y2: number, maxY: number) {
   ctx.beginPath();
-  ctx.moveTo(posX(x1), posY(y1));
-  ctx.lineTo(posX(x2), posY(y2));
+  ctx.moveTo(posX(x1), posY(y1, maxY));
+  ctx.lineTo(posX(x2), posY(y2, maxY));
   ctx.stroke();
 }
 
@@ -35,10 +35,14 @@ type Dot = {
 
 const dots: Dot[] = [];
 
-function dot(x: number, y: number, onin: (ev: PointerEvent) => void, onout: () => void) {
+function dot(
+  x: number, y: number, maxY: number,
+  onin: (ev: PointerEvent) => void,
+  onout: () => void,
+) {
   ctx.beginPath();
   const X = posX(x);
-  const Y = posY(y);
+  const Y = posY(y, maxY);
   dots.push({X, Y, onin, onout});
   ctx.arc(X, Y, dotRadius, 0, TAU);
   ctx.fill();
@@ -106,25 +110,25 @@ function coords() {
   ctx.fillStyle = "#000";
   ctx.lineWidth = .5;
 
-  line(fromX, 0    , toX, 0    );
-  line(fromX, fromY, fromX, toY);
+  line(fromX, 0    , toX, 0    , toY);
+  line(fromX, fromY, fromX, toY, toY);
 
   // TODO eliminate "magic" numbers
 
   ctx.font = "10px sans";
   for (let x = fromX + 10; x <= toX; x += 10) {
-    line(x, -.02, x, .02);
-    ctx.fillText(x.toString(), posX(x)-5, posY(-0.05));
+    line(x, -.04, x, .04, 1);
+    ctx.fillText(x.toString(), posX(x)-5, posY(-0.1, 1));
   }
   if (inStepsIn.checked) {
-    line(fromX, fromY, toX, fromY);
-    line(fromX, toY  , toX, toY  );
+    line(fromX, fromY, toX, fromY, toY);
+    line(fromX, toY  , toX, toY  , toY);
     for (const y of [fromY, 0, toY]) {
-      ctx.fillText(y.toString(), posX(0), posY(y) + 3);
+      ctx.fillText(y.toString(), posX(0), posY(y, toY) + 3);
     }
   } else {
-    ctx.fillText("0ct", posX(0), posY(0) + 3);
     const maxCents = Number.parseInt(maxCentsIn.value);
+    ctx.fillText("0ct", posX(0), posY(0, maxCents) + 3);
     const centsTick =
       maxCents < 20 ? 5 :
       maxCents < 50 ? 10 :
@@ -133,10 +137,9 @@ function coords() {
       100;
     // The `toY` here is because posY(...) is "calibrated" to this value.
     // It might be cleaner to pass the range to posY(...). 
-    const scaling = toY / maxCents;
     for (let y = centsTick; y <= maxCents; y += centsTick) {
-      ctx.fillText(`-${y.toFixed()}ct`, posX(0), posY(-y*scaling) + 3);
-      ctx.fillText(`+${y.toFixed()}ct`, posX(0), posY(+y*scaling) + 3);
+      ctx.fillText(`-${y.toFixed()}ct`, posX(0), posY(-y, maxCents) + 3);
+      ctx.fillText(`+${y.toFixed()}ct`, posX(0), posY(+y, maxCents) + 3);
     }
   }
 }
@@ -169,8 +172,9 @@ function draw() {
       const rounded = Math.round(steps);
       const diff = rounded - steps;
       const diff2 = abs ? Math.abs(diff) : diff;
-      const diff3 = inSteps ? diff2 : diff2 * 600 / (n * maxCents);
-      dot(n, diff3,
+      const diff3 = inSteps ? diff2 : diff2 / n * 1200;
+      const maxY = inSteps ? toY : maxCents;
+      dot(n, diff3, maxY,
          ev => {
           dotInfo.style.display = "block";
           dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
@@ -188,7 +192,7 @@ ${(diff / n).toFixed(5)} octaves = ${
       );
       if (!strands) continue;
       if (nOld > 0) {
-        line(nOld, diffOld, n, diff3);
+        line(nOld, diffOld, n, diff3, maxY);
       }
       [nOld, diffOld] = [n, diff3];
     }
