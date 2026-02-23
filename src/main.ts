@@ -1,5 +1,6 @@
 const N = 100;
 const dotRadius = 4;
+const lineStep = 0.5;
 
 
 const TAU = 2 * Math.PI;
@@ -161,7 +162,7 @@ function coords() {
     }
     if (limitsIn.checked) {
       let xOld = 0, yOld = 0;
-      for (let x = 1; x < toX; x += 0.3) {
+      for (let x = 1; x < toX; x += lineStep) {
         const y = 0.5 / x * 1200;
         if (xOld) {
           line(xOld, +yOld, x, +y, maxCents);
@@ -197,15 +198,13 @@ function draw() {
   for (let rest = 0; rest < m; rest ++) {
     ctx.strokeStyle = ctx.fillStyle =
       strands ? `hsl(${rest/m}turn 100% 50%)` : "#000";
-    let nOld = 0; let diffOld = 0;
+    let nOld = 0; let diffAOld = 0;
     for (let n = rest; n <= N; n += m) {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
       const diff = rounded - steps;
-      const diff2 = abs ? Math.abs(diff) : diff;
-      const diff3 = inSteps ? diff2 : diff2 / n * 1200;
-      dot(n, diff3, maxY,
+      dot(n, absDiff(scaleDiff(diff, n)), maxY,
          ev => {
           dotInfo.style.display = "block";
           dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
@@ -221,11 +220,19 @@ ${(diff / n).toFixed(5)} octaves = ${
         },
         () => dotInfo.style.display = "none",
       );
-      if (!strands) continue;
-      if (nOld > 0) {
-        line(nOld, diffOld, n, diff3, maxY);
+      if (strands) {
+        const diffA = absDiff(diff);
+        if (nOld > 0) {
+          let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
+          for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
+            const diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
+            const diffNextS = scaleDiff(diffNext, nNext);
+            line(nPrev, diffPrevS, nNext, diffNextS, maxY);
+            [nPrev, diffPrevS] = [nNext, diffNextS];
+          }
+        }
+        [nOld, diffAOld] = [n, diffA];
       }
-      [nOld, diffOld] = [n, diff3];
     }
   }
   if (optimaIn.checked) {
@@ -237,9 +244,7 @@ ${(diff / n).toFixed(5)} octaves = ${
       const diff = rounded - steps;
       const dist = Math.abs((rounded - steps) / n);
       if (dist < best) {
-        const diff2 = abs ? Math.abs(diff) : diff;
-        const diff3 = inSteps ? diff2 : diff2 / n * 1200;
-        highlightDot(n, diff3, maxY);
+        highlightDot(n, absDiff(scaleDiff(diff, n)), maxY);
         // Reduce the new limit slightly so that an essentially equal value
         // (up to rounding errors) will not be taken as a new optimum.
         // Is the "epsilon" reasonable?
@@ -248,6 +253,12 @@ ${(diff / n).toFixed(5)} octaves = ${
     }
   }
 }
+
+const interpolate = (x1: number, y1: number, x2: number, y2: number, x: number) =>
+  y1 + (x - x1) / (x2 - x1) * (y2 - y1);
+
+const absDiff = (y: number) => absIn.checked ? Math.abs(y) : y;
+const scaleDiff = (y: number, n: number) => inStepsIn.checked ? y : y / n * 1200;
 
 for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, optimaIn, strandsIn]) {
   elem.addEventListener("input", () =>
