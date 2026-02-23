@@ -97,6 +97,9 @@ const maxCentsLabel = document.querySelector<HTMLLabelElement>('label[for="max-c
 const maxCentsIn = document.querySelector<HTMLInputElement>("#max-cents")!;
 const maxCentsOut = document.querySelector<HTMLOutputElement>("#max-cents-out")!;
 
+const limitsIn = document.querySelector<HTMLInputElement>("#limits")!;
+// const limitsOut = document.querySelector<HTMLOutputElement>("#limits-out")!;
+
 const strandsIn = document.querySelector<HTMLInputElement>("#strands")!;
 const strandsOut = document.querySelector<HTMLOutputElement>("#strands-out")!;
 
@@ -121,10 +124,14 @@ function coords() {
     ctx.fillText(x.toString(), posX(x)-5, posY(-0.1, 1));
   }
   if (inStepsIn.checked) {
-    line(fromX, fromY, toX, fromY, toY);
-    line(fromX, toY  , toX, toY  , toY);
     for (const y of [fromY, 0, toY]) {
       ctx.fillText(y.toString(), posX(0), posY(y, toY) + 3);
+    }
+    if (limitsIn.checked) {
+      line(fromX, toY  , toX, toY  , toY);
+      if (!absIn.checked) {
+        line(fromX, fromY, toX, fromY, toY);
+      }
     }
   } else {
     const maxCents = Number.parseInt(maxCentsIn.value);
@@ -140,6 +147,19 @@ function coords() {
     for (let y = centsTick; y <= maxCents; y += centsTick) {
       ctx.fillText(`-${y.toFixed()}ct`, posX(0), posY(-y, maxCents) + 3);
       ctx.fillText(`+${y.toFixed()}ct`, posX(0), posY(+y, maxCents) + 3);
+    }
+    if (limitsIn.checked) {
+      let xOld = 0, yOld = 0;
+      for (let x = 1; x < toX; x += 0.3) {
+        const y = 0.5 / x * 1200;
+        if (xOld) {
+          line(xOld, +yOld, x, +y, maxCents);
+          if (!absIn.checked) {
+            line(xOld, -yOld, x, -y, maxCents);
+          }
+        }
+        [xOld, yOld] = [x, y];
+      }
     }
   }
 }
@@ -201,7 +221,7 @@ ${(diff / n).toFixed(5)} octaves = ${
   }
 }
 
-for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, strandsIn]) {
+for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, limitsIn, strandsIn]) {
   elem.addEventListener("input", () =>
     location.hash = (new URLSearchParams({
       num: numIn.value,
@@ -209,6 +229,7 @@ for (const elem of [numIn, denomIn, absIn, inStepsIn, maxCentsIn, strandsIn]) {
       unsigned: absIn.checked ? "true" : "false",
       inSteps: inStepsIn.checked ? "true" : "false",
       maxCents: maxCentsIn.value,
+      limits: limitsIn.checked ? "true" : "false",
       strands: strandsIn.value,
     })).toString()
   );
@@ -234,6 +255,9 @@ function handleHash() {
     const value = maxCentsIn.value = params.get("maxCents") ?? "60";
     maxCentsOut.value = `-${value}ct ... +${value}ct`;
   }
+
+  limitsIn.checked = params.get("limits") === "true";
+  // limitsOut.value = ... // anything sensible to write here?
 
   {
     const value = params.get("strands") ?? "0";
