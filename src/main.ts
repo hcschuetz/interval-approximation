@@ -227,14 +227,56 @@ ${(diff / n).toFixed(5)} octaves = ${
         () => dotInfo.style.display = "none",
       );
       if (strands) {
-        const diffA = absDiff(diff);
+        let diffA = absDiff(diff);
         if (nOld > 0) {
-          let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
-          for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
-            const diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
-            const diffNextS = scaleDiff(diffNext, nNext);
-            line(nPrev, diffPrevS, nNext, diffNextS, maxY);
-            [nPrev, diffPrevS] = [nNext, diffNextS];
+          if (Math.abs(diffA - diffAOld) > 0.5) { // "wrap-around" case
+            // Can only occur in the signed case.
+            // Unimplemented: analogous behavior in the unsigned case;
+            // (no dotted lines needed;  there is just a "reflection" at the
+            // "half-step boundary";  but there is also a reflection at the 0 line;)
+
+            // In which direction will we jump?  Upward or downward?
+            const sign = Math.sign(diffA - diffAOld);
+            // First pretend that the next dot is on the side of the
+            // previous one, slightly beyond the half-step boundary:
+            diffA -= sign;
+            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
+            for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
+              let diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
+              if (Math.abs(diffNext) > 0.5) {
+                // Now we work on the segment including the jump.
+                const jumpFrom = -0.5 * sign;
+                // Find the place where the line hits the half-step boundary:
+                const nAux = nOld + (n - nOld) * (jumpFrom - diffAOld) / (diffA - diffAOld);
+                const jumpFromS = scaleDiff(jumpFrom, nAux);
+                const jumpToS = -jumpFromS;
+                // Draw the line segment to the hit...
+                line(nPrev, diffPrevS, nAux, jumpFromS, maxY);
+                ctx.save();
+                // ...and a dashed line to the opposite half-step boundary.
+                ctx.setLineDash([2, 4]);
+                line(nAux, jumpFromS, nAux, jumpToS, maxY);
+                ctx.restore();
+                // Now pretend that we have everything at the other side...
+                diffAOld += sign;
+                diffA += sign;
+                diffNext += sign;
+                // ...and adjust "prev" values so that the outer `line(...)`
+                // call will draw the remaining segment:
+                [nPrev, diffPrevS] = [nAux, jumpToS];
+              }
+              const diffNextS = scaleDiff(diffNext, nNext);
+              line(nPrev, diffPrevS, nNext, diffNextS, maxY);
+              [nPrev, diffPrevS] = [nNext, diffNextS];
+            }
+          } else { // "normal" case
+            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
+            for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
+              const diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
+              const diffNextS = scaleDiff(diffNext, nNext);
+              line(nPrev, diffPrevS, nNext, diffNextS, maxY);
+              [nPrev, diffPrevS] = [nNext, diffNextS];
+            }
           }
         }
         [nOld, diffAOld] = [n, diffA];
