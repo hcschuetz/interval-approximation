@@ -98,9 +98,6 @@ const denomOut = document.querySelector<HTMLOutputElement>("#denominator-out")!;
 const nMaxIn = document.querySelector<HTMLInputElement>("#n-max")!;
 const nMaxOut = document.querySelector<HTMLOutputElement>("#n-max-out")!;
 
-const absIn = document.querySelector<HTMLInputElement>("#abs")!;
-const absOut = document.querySelector<HTMLInputElement>("#abs-out")!;
-
 const inStepsIn = document.querySelector<HTMLInputElement>("#in-steps")!;
 const inStepsOut = document.querySelector<HTMLInputElement>("#in-steps-out")!;
 
@@ -147,9 +144,7 @@ function coords() {
     }
     if (limitsIn.checked) {
       line(fromX, toY  , toX, toY  , toY);
-      if (!absIn.checked) {
-        line(fromX, fromY, toX, fromY, toY);
-      }
+      line(fromX, fromY, toX, fromY, toY);
     }
   } else {
     const maxCents = Number.parseInt(maxCentsIn.value);
@@ -172,9 +167,7 @@ function coords() {
         const y = 0.5 / x * 1200;
         if (xOld) {
           line(xOld, +yOld, x, +y, maxCents);
-          if (!absIn.checked) {
-            line(xOld, -yOld, x, -y, maxCents);
-          }
+          line(xOld, -yOld, x, -y, maxCents);
         }
         [xOld, yOld] = [x, y];
       }
@@ -204,13 +197,13 @@ function draw() {
   for (let rest = 0; rest < m; rest ++) {
     ctx.strokeStyle = ctx.fillStyle =
       strands ? `hsl(${rest/m}turn 100% 50%)` : "#000";
-    let nOld = 0; let diffAOld = 0;
+    let nOld = 0; let diffOld = 0;
     for (let n = rest; n <= nMax + strands; n += m) {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
-      const diff = rounded - steps;
-      dot(n, absDiff(scaleDiff(diff, n)), maxY,
+      let diff = rounded - steps;
+      dot(n, scaleDiff(diff, n), maxY,
          ev => {
           dotInfo.style.display = "block";
           dotInfo.style.left = Math.min(ev.clientX, window.innerWidth - 400) + "px";
@@ -227,28 +220,22 @@ ${(diff / n).toFixed(5)} octaves = ${
         () => dotInfo.style.display = "none",
       );
       if (strands) {
-        let diffA = absDiff(diff);
         if (nOld > 0) {
-          if (Math.abs(diffA - diffAOld) > 0.5) { // "wrap-around" case
-            // Can only occur in the signed case.
-            // Unimplemented: analogous behavior in the unsigned case;
-            // (no dotted lines needed;  there is just a "reflection" at the
-            // "half-step boundary";  but there is also a reflection at the 0 line;)
-
+          if (Math.abs(diff - diffOld) > 0.5) { // "wrap-around" case
             // In which direction will we jump?  Upward or downward?
-            const sign = Math.sign(diffA - diffAOld);
+            const sign = Math.sign(diff - diffOld);
             // First pretend that the next dot is on the side of the
             // previous one, slightly beyond the half-step boundary:
-            diffA -= sign;
-            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
+            diff -= sign;
+            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffOld, nOld)];
             for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
               if (nNext > nMax) break;
-              let diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
+              let diffNext = interpolate(nOld, diffOld, n, diff, nNext);
               if (Math.abs(diffNext) > 0.5) {
                 // Now we work on the segment including the jump.
                 const jumpFrom = -0.5 * sign;
                 // Find the place where the line hits the half-step boundary:
-                const nAux = nOld + (n - nOld) * (jumpFrom - diffAOld) / (diffA - diffAOld);
+                const nAux = nOld + (n - nOld) * (jumpFrom - diffOld) / (diff - diffOld);
                 const jumpFromS = scaleDiff(jumpFrom, nAux);
                 const jumpToS = -jumpFromS;
                 // Draw the line segment to the hit...
@@ -259,8 +246,8 @@ ${(diff / n).toFixed(5)} octaves = ${
                 line(nAux, jumpFromS, nAux, jumpToS, maxY);
                 ctx.restore();
                 // Now pretend that we have everything at the other side...
-                diffAOld += sign;
-                diffA += sign;
+                diffOld += sign;
+                diff += sign;
                 diffNext += sign;
                 // ...and adjust "prev" values so that the outer `line(...)`
                 // call will draw the remaining segment:
@@ -271,17 +258,17 @@ ${(diff / n).toFixed(5)} octaves = ${
               [nPrev, diffPrevS] = [nNext, diffNextS];
             }
           } else { // "normal" case
-            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
+            let [nPrev, diffPrevS] = [nOld, scaleDiff(diffOld, nOld)];
             for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
               if (nNext > nMax) break;
-              const diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
+              const diffNext = interpolate(nOld, diffOld, n, diff, nNext);
               const diffNextS = scaleDiff(diffNext, nNext);
               line(nPrev, diffPrevS, nNext, diffNextS, maxY);
               [nPrev, diffPrevS] = [nNext, diffNextS];
             }
           }
         }
-        [nOld, diffAOld] = [n, diffA];
+        [nOld, diffOld] = [n, diff];
       }
     }
   }
@@ -292,9 +279,9 @@ ${(diff / n).toFixed(5)} octaves = ${
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
       const diff = rounded - steps;
-      const dist = Math.abs((rounded - steps) / n);
+      const dist = Math.abs(diff / n);
       if (dist < best) {
-        highlightDot(n, absDiff(scaleDiff(diff, n)), maxY);
+        highlightDot(n, scaleDiff(diff, n), maxY);
         // Reduce the new limit slightly so that an essentially equal value
         // (up to rounding errors) will not be taken as a new optimum.
         // Is the "epsilon" reasonable?
@@ -307,11 +294,10 @@ ${(diff / n).toFixed(5)} octaves = ${
 const interpolate = (x1: number, y1: number, x2: number, y2: number, x: number) =>
   y1 + (x - x1) / (x2 - x1) * (y2 - y1);
 
-const absDiff = (y: number) => absIn.checked ? Math.abs(y) : y;
 const scaleDiff = (y: number, n: number) => inStepsIn.checked ? y : y / n * 1200;
 
 for (const elem of [
-  numIn, denomIn, nMaxIn, absIn, inStepsIn, maxCentsIn,
+  numIn, denomIn, nMaxIn, inStepsIn, maxCentsIn,
   limitsIn, optimaIn, strandsIn
 ]) {
   elem.addEventListener("input", () =>
@@ -319,7 +305,6 @@ for (const elem of [
       num: numIn.value,
       denom: denomIn.value,
       nMax: nMaxIn.value,
-      unsigned: absIn.checked ? "true" : "false",
       inSteps: inStepsIn.checked ? "true" : "false",
       maxCents: maxCentsIn.value,
       limits: limitsIn.checked ? "true" : "false",
@@ -336,9 +321,6 @@ function handleHash() {
   denomOut.value = denomIn.value = params.get("denom") ?? "3";
   nMaxOut.value = nMaxIn.value = params.get("nMax") ?? "60";
   setNMax(Number.parseInt(nMaxIn.value));
-
-  absIn.checked = params.get("unsigned") === "true";
-  absOut.value = absIn.checked ? "unsigned" : "signed";
 
   {
     const checked = inStepsIn.checked = params.get("inSteps") === "true";
