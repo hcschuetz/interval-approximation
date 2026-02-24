@@ -8,7 +8,7 @@ const canvas = document.querySelector<HTMLCanvasElement>('#out')!;
 const ctx = canvas.getContext("2d")!;
 
 const {width, height} = canvas;
-const paddingX = 15, fromX = 0;
+const paddingX = 4, fromX = 0;
 const paddingY = 5, fromY = -.5, toY = .5;
 
 let scaleX = 0, offsetX = 0;
@@ -168,7 +168,7 @@ function coords() {
     }
     if (limitsIn.checked) {
       let xOld = 0, yOld = 0;
-      for (let x = 1; x < toX; x += lineStep) {
+      for (let x = 1; x <= toX; x += lineStep) {
         const y = 0.5 / x * 1200;
         if (xOld) {
           line(xOld, +yOld, x, +y, maxCents);
@@ -205,7 +205,7 @@ function draw() {
     ctx.strokeStyle = ctx.fillStyle =
       strands ? `hsl(${rest/m}turn 100% 50%)` : "#000";
     let nOld = 0; let diffAOld = 0;
-    for (let n = rest; n <= nMax; n += m) {
+    for (let n = rest; n <= nMax + strands; n += m) {
       if (n === 0) continue;
       const steps = inOctaves * n;
       const rounded = Math.round(steps);
@@ -242,6 +242,7 @@ ${(diff / n).toFixed(5)} octaves = ${
             diffA -= sign;
             let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
             for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
+              if (nNext > nMax) break;
               let diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
               if (Math.abs(diffNext) > 0.5) {
                 // Now we work on the segment including the jump.
@@ -272,6 +273,7 @@ ${(diff / n).toFixed(5)} octaves = ${
           } else { // "normal" case
             let [nPrev, diffPrevS] = [nOld, scaleDiff(diffAOld, nOld)];
             for (let nNext = nPrev + lineStep; nNext <= n; nNext += lineStep) {
+              if (nNext > nMax) break;
               const diffNext = interpolate(nOld, diffAOld, n, diffA, nNext);
               const diffNextS = scaleDiff(diffNext, nNext);
               line(nPrev, diffPrevS, nNext, diffNextS, maxY);
